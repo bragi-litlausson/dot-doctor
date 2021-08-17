@@ -1,0 +1,27 @@
+#+title: Dot Doctor
+
+* Dot Doctor
+Manager for your dot files.
+
+* Table of contents :TOC_3:
+- [[#dot-doctor][Dot Doctor]]
+- [[#about-the-project][About the project]]
+  - [[#built-with][Built with]]
+- [[#getting-started][Getting started]]
+- [[#usage][Usage]]
+- [[#license][License]]
+- [[#contact][Contact]]
+
+* About the project
+
+** Built with
+List of all major frameworks used in the project.
+* Getting started
+Instruction for setting up project locally.
+* Usage
+Examples of how project can be used.
+* License
+Distributed under the 0BSD for more information go to =LICENSE=.
+* Contact
+bragi.litlausson at proton mail
+Project link https:github.com/bragi.litlausson/dot-doctor
