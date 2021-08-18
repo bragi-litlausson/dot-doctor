@@ -9,6 +9,7 @@ This document will go over the implementation of Dot Doctor. For me info about t
 #+end_src
 ** Python
 #+begin_src python :tangle dotdoctor.py
+import os
 from environ_helper import (env_exists, get_env)
 from curses_helper import (init_color_pairs, draw_error_page)
 #+end_src
@@ -75,6 +76,25 @@ def draw_env_missing_error(stdscr):
 #+end_src
 ** Check the dotdoctor_dir
 Call me crazy but checking if the directory exits and has at least one file inside sounds like a good idea.
+#+begin_src python :tangle dotdoctor.py
+def validate_dotdoctor_dir():
+    if os.path.exists(dotdoctor_dir) == False:
+        wrapper(draw_dir_missing_error)
+    if len(os.listdir(dotdoctor_dir)) == 0:
+        wrapper(draw_dir_empty_error)
+def draw_dir_missing_error(stdscr):
+    init_color_pairs()
+    header = "ERROR"
+    message = "{} does not exist.".format(dotdoctor_dir)
+    draw_error_page(stdscr, header, message)
+    stdscr.getkey()
+def draw_dir_empty_error(stdscr):
+    init_color_pairs()
+    header = "ERROR"
+    message = "{} is empty.".format(dotdoctor_dir)
+    draw_error_page(stdscr, header, message)
+    stdscr.getkey()
+#+end_src
 ** Create list of available files and directories
 After everything is ready to go, application goes into dot files repo and creates list of directories and files inside. For now it will only go inside of =.config= directory, other directories will be treated similar to files.
 ** Update list of enabled configs
@@ -82,4 +102,5 @@ After list of files and directories is done, dot doctor goes into home directory
 ** Calling init methods
 #+begin_src python :tangle dotdoctor.py
 get_dotdoctor_dir_path()
+validate_dotdoctor_dir()
 #+end_src

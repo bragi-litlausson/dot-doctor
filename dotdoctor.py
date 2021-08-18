@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 
+import os
 from environ_helper import (env_exists, get_env)
 from curses_helper import (init_color_pairs, draw_error_page)
 
@@ -19,4 +20,23 @@ def draw_env_missing_error(stdscr):
     draw_error_page(stdscr, header, message)
     stdscr.getkey()
 
+def validate_dotdoctor_dir():
+    if os.path.exists(dotdoctor_dir) == False:
+        wrapper(draw_dir_missing_error)
+    if len(os.listdir(dotdoctor_dir)) == 0:
+        wrapper(draw_dir_empty_error)
+def draw_dir_missing_error(stdscr):
+    init_color_pairs()
+    header = "ERROR"
+    message = "{} does not exist.".format(dotdoctor_dir)
+    draw_error_page(stdscr, header, message)
+    stdscr.getkey()
+def draw_dir_empty_error(stdscr):
+    init_color_pairs()
+    header = "ERROR"
+    message = "{} is empty.".format(dotdoctor_dir)
+    draw_error_page(stdscr, header, message)
+    stdscr.getkey()
+
 get_dotdoctor_dir_path()
+validate_dotdoctor_dir()
