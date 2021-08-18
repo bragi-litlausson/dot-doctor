@@ -52,3 +52,13 @@ def draw_error_page(stdscr, header, message):
     stdscr.addstr(4, 3, message, curses.color_pair(3))
 #+end_src
 
+* Init
+** Checking variable
+To locate directory with config files *dot doctor* uses environmental variable called =dotdoctor_dir=.
+I guess at some point I could change this to variable stored in config file, but for the first version it will be more than enough.
+** Check the dotdoctor_dir
+Call me crazy but checking if the directory exits and has at least one file inside sounds like a good idea.
+** Create list of available files and directories
+After everything is ready to go, application goes into dot files repo and creates list of directories and files inside. For now it will only go inside of =.config= directory, other directories will be treated similar to files.
+** Update list of enabled configs
+After list of files and directories is done, dot doctor goes into home directory and check what files were replaced with symbolic links. If the symbolic link is present config is marked as enabled.
