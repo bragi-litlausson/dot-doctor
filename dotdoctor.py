@@ -52,8 +52,15 @@ def create_config_list():
         for file in files_list:
             config_list.append(DotData(file, os.path.join(".config", file), False))
 
+def update_dot_data_status():
+    home_path = get_env("HOME")
+    for dot_data in config_list:
+        dot_path = os.path.join(home_path, dot_data.relative_path)
+        if os.path.exists(dot_path) and os.path.islink(dot_path):
+            dot_data.set_status(True)
+
 if __name__ == "__main__":
     get_dotdoctor_dir_path()
     validate_dotdoctor_dir()
     create_config_list()
-    print(len(config_list))
+    update_dot_data_status()

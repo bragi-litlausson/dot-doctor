@@ -127,11 +127,19 @@ def create_config_list():
 #+end_src
 ** Update list of enabled configs
 After list of files and directories is done, dot doctor goes into home directory and check what files were replaced with symbolic links. If the symbolic link is present config is marked as enabled.
+#+begin_src python :tangle dotdoctor.py
+def update_dot_data_status():
+    home_path = get_env("HOME")
+    for dot_data in config_list:
+        dot_path = os.path.join(home_path, dot_data.relative_path)
+        if os.path.exists(dot_path) and os.path.islink(dot_path):
+            dot_data.set_status(True)
+#+end_src
 ** Calling init methods
 #+begin_src python :tangle dotdoctor.py
 if __name__ == "__main__":
     get_dotdoctor_dir_path()
     validate_dotdoctor_dir()
     create_config_list()
-    print(len(config_list))
+    update_dot_data_status()
 #+end_src
