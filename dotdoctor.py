@@ -65,13 +65,45 @@ def init():
     create_config_list()
     update_dot_data_status()
 
-def draw_list_of_configs(stdscr):
+def config_list_loop(stdscr):
     curses.curs_set(False)
     init_color_pairs()
+    global current_index
+    current_index = 0
+    while True:
+        stdscr.clear()
+        draw_list_of_configs(stdscr, current_index)
+        if process_input(stdscr.getch()):
+            break
+def draw_list_of_configs(stdscr, current_index):
+    rows, cols = stdscr.getmaxyx()
+    row = 80
     for index, dot_data in enumerate(config_list):
-        draw_config_row(stdscr, dot_data, index)
-    stdscr.getkey()
+        if len(config_list) <= rows-2:
+            draw_config_row(stdscr, dot_data, index, current_index == index)
+        elif current_index < 3 and index < rows-3:
+            draw_config_row(stdscr, dot_data, index, current_index == index)
+        elif current_index >= 3 and index > current_index -3 and index < rows -3 + current_index-2:
+            draw_config_row(stdscr, dot_data, index-(current_index-2), current_index == index)
+def process_input(c):
+    global current_index
+    if c == ord('q'):
+        return True
+    if c == ord('k'):
+        current_index -= 1
+    if c == ord('j'):
+        current_index += 1
+
+    clamp_current_index()
+    return False
+
+def clamp_current_index():
+    global current_index
+    if current_index < 0:
+        current_index = 0
+    if current_index >= len(config_list):
+        current_index = len(config_list)-1
 
 if __name__ == "__main__":
     init()
-    wrapper(draw_list_of_configs)
+    wrapper(config_list_loop)
