@@ -12,6 +12,7 @@ This document will go over the implementation of Dot Doctor. For me info about t
 import os
 from environ_helper import (env_exists, get_env)
 from curses_helper import (init_color_pairs, draw_error_page)
+from dotdata import DotData
 #+end_src
 ** Curses
 #+begin_src python :tangle dotdoctor.py
@@ -56,6 +57,18 @@ def draw_error_page(stdscr, header, message):
     stdscr.addstr(4, 3, message, curses.color_pair(3))
 #+end_src
 
+** DotData
+To save my sanity I had to create class for storing all the relevant info about any given dot file.
+#+begin_src python :tangle dotdata.py
+class DotData:
+    enabled = False
+    def __init__(self, name, relative_path, status):
+        self.name = name
+        self.relative_path = relative_path
+        self.status = status
+    def set_status(self, status):
+        self.status = status
+#+end_src
 * Init
 ** Checking variable
 To locate directory with config files *dot doctor* uses environmental variable called =dotdoctor_dir=.
@@ -96,11 +109,29 @@ def draw_dir_empty_error(stdscr):
     stdscr.getkey()
 #+end_src
 ** Create list of available files and directories
-After everything is ready to go, application goes into dot files repo and creates list of directories and files inside. For now it will only go inside of =.config= directory, other directories will be treated similar to files.
+After everything is ready to go, application goes into dot files directory and creates list of directories and files inside. For now it will only go inside of =.config= directory, other directories will be treated similar to files.
+#+begin_src python :tangle dotdoctor.py
+def create_config_list():
+    global config_list
+    config_list = []
+    files_list = os.listdir(dotdoctor_dir)
+    for file in files_list:
+        if file != ".config":
+            config_list.append(DotData(file, file, False))
+    if '.config' in os.listdir(dotdoctor_dir):
+        path = os.path.join(dotdoctor_dir, ".config")
+        files_list = os.listdir(path)
+        for file in files_list:
+            config_list.append(DotData(file, os.path.join(".config", file), False))
+
+#+end_src
 ** Update list of enabled configs
 After list of files and directories is done, dot doctor goes into home directory and check what files were replaced with symbolic links. If the symbolic link is present config is marked as enabled.
 ** Calling init methods
 #+begin_src python :tangle dotdoctor.py
-get_dotdoctor_dir_path()
-validate_dotdoctor_dir()
+if __name__ == "__main__":
+    get_dotdoctor_dir_path()
+    validate_dotdoctor_dir()
+    create_config_list()
+    print(len(config_list))
 #+end_src

@@ -3,6 +3,7 @@
 import os
 from environ_helper import (env_exists, get_env)
 from curses_helper import (init_color_pairs, draw_error_page)
+from dotdata import DotData
 
 import curses
 from curses import wrapper
@@ -38,5 +39,21 @@ def draw_dir_empty_error(stdscr):
     draw_error_page(stdscr, header, message)
     stdscr.getkey()
 
-get_dotdoctor_dir_path()
-validate_dotdoctor_dir()
+def create_config_list():
+    global config_list
+    config_list = []
+    files_list = os.listdir(dotdoctor_dir)
+    for file in files_list:
+        if file != ".config":
+            config_list.append(DotData(file, file, False))
+    if '.config' in os.listdir(dotdoctor_dir):
+        path = os.path.join(dotdoctor_dir, ".config")
+        files_list = os.listdir(path)
+        for file in files_list:
+            config_list.append(DotData(file, os.path.join(".config", file), False))
+
+if __name__ == "__main__":
+    get_dotdoctor_dir_path()
+    validate_dotdoctor_dir()
+    create_config_list()
+    print(len(config_list))
