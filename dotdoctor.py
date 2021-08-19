@@ -51,6 +51,7 @@ def create_config_list():
         files_list = os.listdir(path)
         for file in files_list:
             config_list.append(DotData(file, os.path.join(".config", file), False))
+    config_list.sort(key=lambda x: x.name)
 
 def update_dot_data_status():
     home_path = get_env("HOME")
