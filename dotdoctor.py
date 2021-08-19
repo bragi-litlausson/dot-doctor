@@ -2,7 +2,7 @@
 
 import os
 from environ_helper import (env_exists, get_env)
-from curses_helper import (init_color_pairs, draw_error_page)
+from curses_helper import (init_color_pairs, draw_error_page, draw_config_row)
 from dotdata import DotData
 
 import curses
@@ -59,8 +59,19 @@ def update_dot_data_status():
         if os.path.exists(dot_path) and os.path.islink(dot_path):
             dot_data.set_status(True)
 
-if __name__ == "__main__":
+def init():
     get_dotdoctor_dir_path()
     validate_dotdoctor_dir()
     create_config_list()
     update_dot_data_status()
+
+def draw_list_of_configs(stdscr):
+    curses.curs_set(False)
+    init_color_pairs()
+    for index, dot_data in enumerate(config_list):
+        draw_config_row(stdscr, dot_data, index)
+    stdscr.getkey()
+
+if __name__ == "__main__":
+    init()
+    wrapper(draw_list_of_configs)

@@ -3,23 +3,6 @@ This is my first attempt of doing literate programming, don't be to harsh. ;)
 
 This document will go over the implementation of Dot Doctor. For me info about the project check =README.org=.
 
-* Shebang & imports
-#+begin_src python :tangle dotdoctor.py
-#!/usr/bin/env python3
-#+end_src
-** Python
-#+begin_src python :tangle dotdoctor.py
-import os
-from environ_helper import (env_exists, get_env)
-from curses_helper import (init_color_pairs, draw_error_page)
-from dotdata import DotData
-#+end_src
-** Curses
-#+begin_src python :tangle dotdoctor.py
-import curses
-from curses import wrapper
-#+end_src
-
 * Helpers
 ** Environ Helper
 #+begin_src python :tangle environ_helper.py
@@ -48,6 +31,10 @@ def init_color_pairs():
     curses.init_pair(2, curses.COLOR_RED, curses.COLOR_BLACK)
     curses.init_pair(3, curses.COLOR_MAGENTA, curses.COLOR_BLACK)
 #+end_src
+
+#+RESULTS:
+: None
+
 *** Draw Error page
 This is method is a quick and easy way to create error message.
 #+begin_src python :tangle curses_helper.py
@@ -55,6 +42,14 @@ def draw_error_page(stdscr, header, message):
     stdscr.clear()
     stdscr.addstr(3, 3, header, curses.color_pair(2))
     stdscr.addstr(4, 3, message, curses.color_pair(3))
+#+end_src
+*** Draw Config row
+#+begin_src python :tangle curses_helper.py
+def draw_config_row(stdscr, dot_data, index):
+    if dot_data.status:
+        stdscr.addstr(1+index, 2, dot_data.name, curses.color_pair(1))
+    else:
+        stdscr.addstr(1+index, 2, dot_data.name, curses.color_pair(2))
 #+end_src
 
 ** DotData
@@ -69,6 +64,23 @@ class DotData:
     def set_status(self, status):
         self.status = status
 #+end_src
+* Shebang & imports
+#+begin_src python :tangle dotdoctor.py
+#!/usr/bin/env python3
+#+end_src
+** Python
+#+begin_src python :tangle dotdoctor.py
+import os
+from environ_helper import (env_exists, get_env)
+from curses_helper import (init_color_pairs, draw_error_page, draw_config_row)
+from dotdata import DotData
+#+end_src
+** Curses
+#+begin_src python :tangle dotdoctor.py
+import curses
+from curses import wrapper
+#+end_src
+
 * Init
 ** Checking variable
 To locate directory with config files *dot doctor* uses environmental variable called =dotdoctor_dir=.
@@ -137,9 +149,28 @@ def update_dot_data_status():
 #+end_src
 ** Calling init methods
 #+begin_src python :tangle dotdoctor.py
-if __name__ == "__main__":
+def init():
     get_dotdoctor_dir_path()
     validate_dotdoctor_dir()
     create_config_list()
     update_dot_data_status()
+#+end_src
+
+* Config GUI logic
+** Draw list of available configs
+#+begin_src python :tangle dotdoctor.py
+def draw_list_of_configs(stdscr):
+    curses.curs_set(False)
+    init_color_pairs()
+    for index, dot_data in enumerate(config_list):
+        draw_config_row(stdscr, dot_data, index)
+    stdscr.getkey()
+
+#+end_src
+
+* Main loop
+#+begin_src python :tangle dotdoctor.py
+if __name__ == "__main__":
+    init()
+    wrapper(draw_list_of_configs)
 #+end_src
