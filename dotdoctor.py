@@ -1,6 +1,8 @@
 #!/usr/bin/env python3
 
 import os
+import sys
+import shutil
 from environ_helper import (env_exists, get_env)
 from curses_helper import (init_color_pairs, draw_error_page, draw_config_row)
 from dotdata import DotData
@@ -60,17 +62,24 @@ def update_dot_data_status():
         if os.path.exists(dot_path) and os.path.islink(dot_path):
             dot_data.set_status(True)
 
+def set_up_backup_directory():
+    path = os.path.dirname(sys.argv[0])
+    path = os.path.join(path, ".backup")
+    if os.path.exists(path) == False:
+        os.mkdir(path)
+
 def init():
     get_dotdoctor_dir_path()
     validate_dotdoctor_dir()
+    set_up_backup_directory()
     create_config_list()
     update_dot_data_status()
 
+current_index = 0
 def config_list_loop(stdscr):
     curses.curs_set(False)
     init_color_pairs()
     global current_index
-    current_index = 0
     while True:
         stdscr.clear()
         draw_list_of_configs(stdscr, current_index)
@@ -94,10 +103,28 @@ def process_input(c):
         current_index -= 1
     if c == ord('j'):
         current_index += 1
-
+    if c == 10:
+        toggle_config()
     clamp_current_index()
     return False
 
+def toggle_config():
+    global config_list, current_index
+    data = config_list[current_index]
+    if data.status == False:
+        activate_dot_data(data)
+    else:
+        data.set_status(False)
+def activate_dot_data(dot_data):
+    global dotdoctor_dir
+    dot_data.set_status(True)
+    home_path = os.path.join(get_env("HOME"), dot_data.relative_path)
+    backup_path = os.path.join("./.backup", dot_data.relative_path)
+    config_path = os.path.join(dotdoctor_dir, dot_data.relative_path)
+    config_path = os.path.abspath(config_path)
+    if os.path.exists(home_path):
+        shutil.move(home_path, backup_path)
+    os.symlink(config_path, home_path)
 def clamp_current_index():
     global current_index
     if current_index < 0:
