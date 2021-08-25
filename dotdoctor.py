@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 
+
 import os
 import sys
 import shutil
@@ -84,13 +85,13 @@ def config_list_loop(stdscr):
     global current_index
     while True:
         stdscr.clear()
+        draw_navigation_help(stdscr)
         draw_list_of_configs(stdscr, current_index)
         if process_input(stdscr.getch()):
             break
 
 def draw_list_of_configs(stdscr, current_index):
     rows, cols = stdscr.getmaxyx()
-    row = 80
     for index, dot_data in enumerate(config_list):
         if len(config_list) <= rows-2:
             draw_config_row(stdscr, dot_data, index, current_index == index)
@@ -98,6 +99,10 @@ def draw_list_of_configs(stdscr, current_index):
             draw_config_row(stdscr, dot_data, index, current_index == index)
         elif current_index >= 3 and index > current_index -3 and index < rows -3 + current_index-2:
             draw_config_row(stdscr, dot_data, index-(current_index-2), current_index == index)
+
+def draw_navigation_help(stdscr):
+    rows, cols = stdscr.getmaxyx()
+    stdscr.addstr(rows-1, 2, "[j] down | [k] up | [enter] enable/disable config")
 
 def process_input(c):
     global current_index
