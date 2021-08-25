@@ -69,9 +69,8 @@ class DotData:
     def set_status(self, status):
         self.status = status
 #+end_src
-* Shebang & imports
-#+begin_src python :tangle dotdoctor.py
-#!/usr/bin/env python3
+* Imports
+#+begin_src python :tangle dotdoctor.py :shebang #!/usr/bin/env python3
 #+end_src
 ** Python
 #+begin_src python :tangle dotdoctor.py
