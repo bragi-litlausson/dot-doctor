@@ -159,8 +159,8 @@ def update_dot_data_status():
 When activating config dot doctor will move existing files to =.backup= directory so we need to check if it exists and if it doesn't create it.
 #+begin_src python :tangle dotdoctor.py
 def set_up_backup_directory():
-    path = os.path.dirname(sys.argv[0])
-    path = os.path.join(path, ".backup")
+    path = "./.backup"
+    path = os.path.abspath(path)
     if os.path.exists(path) == False:
         os.mkdir(path)
         path = os.path.join(path, ".config")

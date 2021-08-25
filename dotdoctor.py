@@ -46,7 +46,7 @@ def create_config_list():
     config_list = []
     files_list = os.listdir(dotdoctor_dir)
     for file in files_list:
-        if file != ".config":
+        if file != ".config" and file != "README.org" and "README.md":
             config_list.append(DotData(file, file, False))
     if '.config' in os.listdir(dotdoctor_dir):
         path = os.path.join(dotdoctor_dir, ".config")
@@ -63,8 +63,8 @@ def update_dot_data_status():
             dot_data.set_status(True)
 
 def set_up_backup_directory():
-    path = os.path.dirname(sys.argv[0])
-    path = os.path.join(path, ".backup")
+    path = "./.backup"
+    path = os.path.abspath(path)
     if os.path.exists(path) == False:
         os.mkdir(path)
         path = os.path.join(path, ".config")
@@ -87,6 +87,7 @@ def config_list_loop(stdscr):
         draw_list_of_configs(stdscr, current_index)
         if process_input(stdscr.getch()):
             break
+
 def draw_list_of_configs(stdscr, current_index):
     rows, cols = stdscr.getmaxyx()
     row = 80
@@ -97,6 +98,7 @@ def draw_list_of_configs(stdscr, current_index):
             draw_config_row(stdscr, dot_data, index, current_index == index)
         elif current_index >= 3 and index > current_index -3 and index < rows -3 + current_index-2:
             draw_config_row(stdscr, dot_data, index-(current_index-2), current_index == index)
+
 def process_input(c):
     global current_index
     if c == ord('q'):
@@ -117,6 +119,7 @@ def toggle_config():
         activate_dot_data(data)
     else:
         deactivate_dot_data(data)
+
 def activate_dot_data(dot_data):
     global dotdoctor_dir
     dot_data.set_status(True)
@@ -128,6 +131,7 @@ def activate_dot_data(dot_data):
     if os.path.exists(home_path):
         shutil.move(home_path, backup_path)
     os.symlink(config_path, home_path)
+
 def deactivate_dot_data(dot_data):
     global dotdoctor_dir
     dot_data.set_status(False)
@@ -136,6 +140,7 @@ def deactivate_dot_data(dot_data):
     backup_path = os.path.abspath(backup_path)
     os.unlink(home_path)
     shutil.move(backup_path, home_path)
+
 def clamp_current_index():
     global current_index
     if current_index < 0:
