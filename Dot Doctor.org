@@ -68,15 +68,15 @@ def draw_config_row(stdscr, dot_data, y, is_active):
         stdscr.addstr(y, 2, dot_data.name, curses.color_pair(2+mod))
 #+end_src
 
-* DotData
-To save my sanity I had to create class for storing all the relevant info about any given dot file.
-#+begin_src python :tangle dotdata.py
+* Dot Data
+Dot Data is used to store all the info about configuration files/directories.
+#+begin_src python :tangle dotdoctor.py
 class DotData:
-    enabled = False
-    def __init__(self, name, relative_path, status):
+    def __init__(self, name, relative_path, is_directory):
         self.name = name
         self.relative_path = relative_path
-        self.status = status
+        self.status = False
+        self.is_directory = is_directory
     def set_status(self, status):
         self.status = status
 #+end_src
