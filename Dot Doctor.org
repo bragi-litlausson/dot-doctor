@@ -3,57 +3,72 @@ This is my first attempt of doing literate programming, don't be to harsh. ;)
 
 This document will go over the implementation of Dot Doctor. For me info about the project check =README.org=.
 
-* Helpers
-** Environ Helper
-#+begin_src python :tangle environ_helper.py
+
+* Imports
+#+begin_src python :tangle dotdoctor.py :shebang #!/usr/bin/env python3
+import curses
+from curses import wrapper
+
 import os
-from os import environ
+from os import environ, path
+
+import sys
+import shutil
 #+end_src
-*** Environmental variable exist
-#+begin_src python :tangle environ_helper.py
+* Helpers
+This section contains wrappers ad helpers for modules used in the project.
+** Environ Module
+I need only two helper methods for environ module.
+Application needs to check is =env= exists and to get it.
+#+begin_src python :tangle dotdoctor.py
 def env_exists(name):
     return name in environ
-#+end_src
-*** Get environmental variable
-#+begin_src python :tangle environ_helper.py
 def get_env(name):
     return environ.get(name)
 #+end_src
-** Curses Helper
-#+begin_src python :tangle curses_helper.py
-import curses
-#+end_src
-*** Init Color Pairs
-This method is used to set up additional color pairs for curses to use. By default only one color pair exists (0: white on black).
-#+begin_src python :tangle curses_helper.py
+** Curses Module
+*** Init color pairs
+Boilerplate code used to set up color pairs used by curses module.
+Color pair "0" is hard-coded to white on black
+#+begin_src python :tangle dotdoctor.py
 def init_color_pairs():
+    # GREEN on BLACK
     curses.init_pair(1, curses.COLOR_GREEN, curses.COLOR_BLACK)
+    # RED on BLACK
     curses.init_pair(2, curses.COLOR_RED, curses.COLOR_BLACK)
+    # MAGENTA on BLACK
     curses.init_pair(3, curses.COLOR_MAGENTA, curses.COLOR_BLACK)
+    # GREEN on WHITE
     curses.init_pair(6, curses.COLOR_GREEN, curses.COLOR_WHITE)
+    # RED on WHITE
     curses.init_pair(7, curses.COLOR_RED, curses.COLOR_WHITE)
+
+def
 #+end_src
-*** Draw Error page
-This is method is a quick and easy way to create error message.
-#+begin_src python :tangle curses_helper.py
-def draw_error_page(stdscr, header, message):
+*** Error page
+When initial requirements are not me app should inform user about the nature of the problem.
+This can happen more than once so I needed a function to handle drawing error prompt.
+#+begin_src python :tangle dotdoctor.py
+def draw_error_message(stdscr, header, message):
     stdscr.clear()
     stdscr.addstr(3, 3, header, curses.color_pair(2))
     stdscr.addstr(4, 3, message, curses.color_pair(3))
 #+end_src
-*** Draw Config row
-#+begin_src python :tangle curses_helper.py
-def draw_config_row(stdscr, dot_data, index, active):
-    mod = 0
+*** Config row
+Another piece of User Interface that needed generic function is row used to display info about particular config file/directory.
+#+begin_src python :tangle dotdoctor.py
+def draw_config_row(stdscr, dot_data, y, is_active):
+    color_pair_modifier = 0
     if active:
-        mod = 5
+        color_pair_modifier = 5
+
     if dot_data.status:
-        stdscr.addstr(1+index, 2, dot_data.name, curses.color_pair(1+mod))
+        stdscr.addstr(y, 2, dot_data.name, curses.color_pair(1+mod))
     else:
-        stdscr.addstr(1+index, 2, dot_data.name, curses.color_pair(2+mod))
+        stdscr.addstr(y, 2, dot_data.name, curses.color_pair(2+mod))
 #+end_src
 
-** DotData
+* DotData
 To save my sanity I had to create class for storing all the relevant info about any given dot file.
 #+begin_src python :tangle dotdata.py
 class DotData:
@@ -65,24 +80,6 @@ class DotData:
     def set_status(self, status):
         self.status = status
 #+end_src
-* Imports
-#+begin_src python :tangle dotdoctor.py :shebang #!/usr/bin/env python3
-#+end_src
-** Python
-#+begin_src python :tangle dotdoctor.py
-import os
-import sys
-import shutil
-from environ_helper import (env_exists, get_env)
-from curses_helper import (init_color_pairs, draw_error_page, draw_config_row)
-from dotdata import DotData
-#+end_src
-** Curses
-#+begin_src python :tangle dotdoctor.py
-import curses
-from curses import wrapper
-#+end_src
-
 * Init
 ** Checking variable
 To locate directory with config files *dot doctor* uses environmental variable called =dotdoctor_dir=.
