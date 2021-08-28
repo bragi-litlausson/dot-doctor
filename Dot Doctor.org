@@ -80,38 +80,53 @@ class DotData:
     def set_status(self, status):
         self.status = status
 #+end_src
-* Init
-** Checking variable
+* Initialize
+** $dotdoctor_dir
+*** Checking environmental variable
 To locate directory with config files *dot doctor* uses environmental variable called =dotdoctor_dir=.
 I guess at some point I could change this to variable stored in config file, but for the first version it will be more than enough.
+
+If env is not set app will display error message using helper function.h
+**** Verify dotdoctor_dir env
 #+begin_src python :tangle dotdoctor.py
-def get_dotdoctor_dir_path():
+dotdoctor_dir = ""
+def verify_dotdoctor_dir_env():
+    global dotdoctor_dir
     if env_exists("dotdoctor_dir"):
-        global dotdoctor_dir
         dotdoctor_dir = get_env("dotdoctor_dir")
     else:
         wrapper(draw_env_missing_error)
+#+end_src
+***** Draw env missing error message
+#+begin_src python :tangle dotdoctor.py
 def draw_env_missing_error(stdscr):
     init_color_pairs()
     header = "ERROR"
-    message = "Environemntal variable $dotdoctor_dir is not set."
+    message = "Environemntal variable $dotdoctor_dir is not set.\nVariable should contain absolute path to your config repository."
     draw_error_page(stdscr, header, message)
     stdscr.getkey()
 #+end_src
-** Check the dotdoctor_dir
-Call me crazy but checking if the directory exits and has at least one file inside sounds like a good idea.
+*** Check the dotdoctor_dir
+Call me crazy but checking if the directory provided by the user exits and has at least one file inside sounds like a good idea.
+**** Verify config dir
 #+begin_src python :tangle dotdoctor.py
 def validate_dotdoctor_dir():
     if os.path.exists(dotdoctor_dir) == False:
         wrapper(draw_dir_missing_error)
     if len(os.listdir(dotdoctor_dir)) == 0:
         wrapper(draw_dir_empty_error)
+#+end_src
+***** Draw dir doesn't exist error
+#+begin_src python :tangle dotdoctor.py
 def draw_dir_missing_error(stdscr):
     init_color_pairs()
     header = "ERROR"
     message = "{} does not exist.".format(dotdoctor_dir)
     draw_error_page(stdscr, header, message)
     stdscr.getkey()
+#+end_src
+***** Draw dir is empty error
+#+begin_src python :tangle dotdoctor.py
 def draw_dir_empty_error(stdscr):
     init_color_pairs()
     header = "ERROR"
