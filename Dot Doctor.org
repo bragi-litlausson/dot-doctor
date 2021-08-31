@@ -42,8 +42,6 @@ def init_color_pairs():
     curses.init_pair(6, curses.COLOR_GREEN, curses.COLOR_WHITE)
     # RED on WHITE
     curses.init_pair(7, curses.COLOR_RED, curses.COLOR_WHITE)
-
-def
 #+end_src
 *** Error page
 When initial requirements are not me app should inform user about the nature of the problem.
@@ -53,19 +51,21 @@ def draw_error_message(stdscr, header, message):
     stdscr.clear()
     stdscr.addstr(3, 3, header, curses.color_pair(2))
     stdscr.addstr(4, 3, message, curses.color_pair(3))
+    stdscr.getch()
+    exit()
 #+end_src
 *** Config row
 Another piece of User Interface that needed generic function is row used to display info about particular config file/directory.
 #+begin_src python :tangle dotdoctor.py
 def draw_config_row(stdscr, dot_data, y, is_active):
     color_pair_modifier = 0
-    if active:
+    if is_active:
         color_pair_modifier = 5
 
     if dot_data.status:
-        stdscr.addstr(y, 2, dot_data.name, curses.color_pair(1+mod))
+        stdscr.addstr(y, 2, dot_data.name, curses.color_pair(1+color_pair_modifier))
     else:
-        stdscr.addstr(y, 2, dot_data.name, curses.color_pair(2+mod))
+        stdscr.addstr(y, 2, dot_data.name, curses.color_pair(2+color_pair_modifier))
 #+end_src
 
 * Dot Data
@@ -82,11 +82,16 @@ class DotData:
 #+end_src
 * Initialize
 ** $dotdoctor_dir
+#+begin_src python :tangle dotdoctor.py
+def validate_env_var():
+    verify_dotdoctor_dir_env()
+    validate_dotdoctor_dir()
+#+end_src
 *** Checking environmental variable
 To locate directory with config files *dot doctor* uses environmental variable called =dotdoctor_dir=.
 I guess at some point I could change this to variable stored in config file, but for the first version it will be more than enough.
 
-If env is not set app will display error message using helper function.h
+If env is not set app will display error message using helper function.
 **** Verify dotdoctor_dir env
 #+begin_src python :tangle dotdoctor.py
 dotdoctor_dir = ""
@@ -102,13 +107,13 @@ def verify_dotdoctor_dir_env():
 def draw_env_missing_error(stdscr):
     init_color_pairs()
     header = "ERROR"
-    message = "Environemntal variable $dotdoctor_dir is not set.\nVariable should contain absolute path to your config repository."
-    draw_error_page(stdscr, header, message)
+    message = "Environemntal variable $dotdoctor_dir is not set. Variable should contain absolute path to your config repository."
+    draw_error_message(stdscr, header, message)
     stdscr.getkey()
 #+end_src
-*** Check the dotdoctor_dir
+*** Check the dotdoctor_dir path
 Call me crazy but checking if the directory provided by the user exits and has at least one file inside sounds like a good idea.
-**** Verify config dir
+**** Verify config repository dir
 #+begin_src python :tangle dotdoctor.py
 def validate_dotdoctor_dir():
     if os.path.exists(dotdoctor_dir) == False:
@@ -122,7 +127,7 @@ def draw_dir_missing_error(stdscr):
     init_color_pairs()
     header = "ERROR"
     message = "{} does not exist.".format(dotdoctor_dir)
-    draw_error_page(stdscr, header, message)
+    draw_error_message(stdscr, header, message)
     stdscr.getkey()
 #+end_src
 ***** Draw dir is empty error
@@ -131,29 +136,93 @@ def draw_dir_empty_error(stdscr):
     init_color_pairs()
     header = "ERROR"
     message = "{} is empty.".format(dotdoctor_dir)
-    draw_error_page(stdscr, header, message)
+    draw_error_message(stdscr, header, message)
     stdscr.getkey()
+#+end_src
+** Create necessary directory structure
+Application stores all of its files and directories in =.dotdoctor= directory located in users' home directory.
+
+Currently there is only one file and one directory used by the application.
+1. =ignore= file
+   list of files and directories to be ignored
+2. =.backup= directory
+   Directory used to store replaced config files.
+#+begin_src python :tangle dotdoctor.py
+home_path = get_env("HOME")
+root_path = ""
+def validate_directory_structure():
+    validate_root_directory()
+    validate_backup_directory()
+#+end_src
+*** Create root directory in home directory
+#+begin_src python :tangle dotdoctor.py
+def validate_root_directory():
+    global root_path, home_path
+    root_path = path.join(home_path, ".dotdoctor")
+    if path.exists(root_path) == False:
+        os.mkdir(root_path)
+#+end_src
+*** Validate backup directory
+When activating config file/directory dot doctor will move existing files to =.backup= directory so we need to check if it exists and if it doesn't create it.
+#+begin_src python :tangle dotdoctor.py
+def validate_backup_directory():
+    global root_path
+    backup_path = os.path.join(root_path, ".backup")
+    if os.path.exists(backup_path) == False:
+        os.mkdir(backup_path)
+        backup_path = os.path.join(backup_path, ".config")
+        os.mkdir(backup_path)
+#+end_src
+
+** Loading ignore file
+Reads lines from =$HOME/.dotdoctor/ignore= and adds the content to the list of ignored file/directory names.
+
+If files does not exist default file will be created.
+#+begin_src python :tangle dotdoctor.py
+ignore = []
+def load_ignore_file():
+    global ignore, root_path
+    ignore_path = os.path.join(root_path, "ignore")
+    if os.path.exists(ignore_path) == False:
+        with open(ignore_path, "w+") as file:
+            file.write(".config\n")
+            file.write("README.org\n")
+            file.write("README.md\n")
+            file.write("LICENSE\n")
+            file.write(".git\n")
+    path = os.path.abspath("./ignore")
+    with open(ignore_path) as file:
+        ignore = file.readlines()
+        ignore = [line.rstrip() for line in ignore]
 #+end_src
 ** Create list of available files and directories
 After everything is ready to go, application goes into dot files directory and creates list of directories and files inside. For now it will only go inside of =.config= directory, other directories will be treated similar to files.
 #+begin_src python :tangle dotdoctor.py
+config_list = []
 def create_config_list():
-    global config_list
-    config_list = []
+    global config_list, ignore
     files_list = os.listdir(dotdoctor_dir)
     for file in files_list:
-        if file != ".config" and file != "README.org" and "README.md":
-            config_list.append(DotData(file, file, False))
-    if '.config' in os.listdir(dotdoctor_dir):
+        if is_file_ignored(file):
+            print("Ignored: {}".format(file))
+        else:
+            config_list.append(DotData(file, file, os.path.isdir(os.path.join(dotdoctor_dir, file))))
+    if '.config' in files_list:
         path = os.path.join(dotdoctor_dir, ".config")
         files_list = os.listdir(path)
         for file in files_list:
-            config_list.append(DotData(file, os.path.join(".config", file), False))
+            if is_file_ignored(file):
+                print("Ignored: {}".format(file))
+            else:
+                config_list.append(DotData(file, os.path.join(".config", file), os.path.isdir(os.path.join(path, file))))
     config_list.sort(key=lambda x: x.name)
-
+def is_file_ignored(file_name):
+    global ignore
+    return file_name in ignore
 #+end_src
 ** Update list of enabled configs
-After list of files and directories is done, dot doctor goes into home directory and check what files were replaced with symbolic links. If the symbolic link is present config is marked as enabled.
+After list of files and directories is done, dot doctor goes into home directory and check what files were replaced with symbolic links.
+If the symbolic link is present config is marked as enabled.
 #+begin_src python :tangle dotdoctor.py
 def update_dot_data_status():
     home_path = get_env("HOME")
@@ -162,24 +231,12 @@ def update_dot_data_status():
         if os.path.exists(dot_path) and os.path.islink(dot_path):
             dot_data.set_status(True)
 #+end_src
-** Create backup directory
-When activating config dot doctor will move existing files to =.backup= directory so we need to check if it exists and if it doesn't create it.
-#+begin_src python :tangle dotdoctor.py
-def set_up_backup_directory():
-    path = "./.backup"
-    path = os.path.abspath(path)
-    if os.path.exists(path) == False:
-        os.mkdir(path)
-        path = os.path.join(path, ".config")
-        os.mkdir(path)
-#+end_src
-
 ** Calling init methods
 #+begin_src python :tangle dotdoctor.py
-def init():
-    get_dotdoctor_dir_path()
-    validate_dotdoctor_dir()
-    set_up_backup_directory()
+def initialize():
+    validate_env_var()
+    validate_directory_structure()
+    load_ignore_file()
     create_config_list()
     update_dot_data_status()
 #+end_src
@@ -232,7 +289,7 @@ def process_input(c):
     clamp_current_index()
     return False
 #+end_src
-** Toogle config
+** Toggle config
 #+begin_src python :tangle dotdoctor.py
 def toggle_config():
     global config_list, current_index
@@ -280,7 +337,7 @@ def clamp_current_index():
 * Main loop
 #+begin_src python :tangle dotdoctor.py
 if __name__ == "__main__":
-    init()
+    initialize()
     wrapper(config_list_loop)
 #+end_src
 * install.sh
