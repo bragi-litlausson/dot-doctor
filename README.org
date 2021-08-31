@@ -1,10 +1,8 @@
 #+title: Dot Doctor
 
-* Dot Doctor
 Simple manager for dot files.
 
 * Table of contents :TOC_2:
-- [[#dot-doctor][Dot Doctor]]
 - [[#about-the-project][About the project]]
   - [[#built-with][Built with]]
 - [[#getting-started][Getting started]]
