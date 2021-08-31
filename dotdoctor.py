@@ -38,9 +38,9 @@ def draw_config_row(stdscr, dot_data, y, is_active):
         color_pair_modifier = 5
 
     if dot_data.status:
-        stdscr.addstr(y, 2, dot_data.name, curses.color_pair(1+color_pair_modifier))
+        stdscr.addstr(y, 2, dot_data.get_name(), curses.color_pair(1+color_pair_modifier))
     else:
-        stdscr.addstr(y, 2, dot_data.name, curses.color_pair(2+color_pair_modifier))
+        stdscr.addstr(y, 2, dot_data.get_name(), curses.color_pair(2+color_pair_modifier))
 
 class DotData:
     def __init__(self, name, relative_path, is_directory):
@@ -50,6 +50,11 @@ class DotData:
         self.is_directory = is_directory
     def set_status(self, status):
         self.status = status
+    def get_name(self):
+        if self.is_directory:
+            return "{}{}".format(self.name, "/")
+        else:
+            return self.name
 
 def validate_env_var():
     verify_dotdoctor_dir_env()
@@ -102,13 +107,14 @@ def validate_root_directory():
     if path.exists(root_path) == False:
         os.mkdir(root_path)
 
+backup_path = ""
 def validate_backup_directory():
-    global root_path
+    global backup_path, root_path
     backup_path = os.path.join(root_path, ".backup")
     if os.path.exists(backup_path) == False:
         os.mkdir(backup_path)
-        backup_path = os.path.join(backup_path, ".config")
-        os.mkdir(backup_path)
+        cbackup_path = os.path.join(backup_path, ".config")
+        os.mkdir(cbackup_path)
 
 ignore = []
 def load_ignore_file():
@@ -163,15 +169,17 @@ def initialize():
     update_dot_data_status()
 
 current_index = 0
+got_exit_code=False
 def config_list_loop(stdscr):
+    global current_index, got_exit_code
     curses.curs_set(False)
     init_color_pairs()
-    global current_index
     while True:
         stdscr.clear()
         draw_navigation_help(stdscr)
         draw_list_of_configs(stdscr, current_index)
-        if process_input(stdscr.getch()):
+        process_input(stdscr.getch())
+        if got_exit_code:
             break
 
 def draw_list_of_configs(stdscr, current_index):
@@ -186,12 +194,12 @@ def draw_list_of_configs(stdscr, current_index):
 
 def draw_navigation_help(stdscr):
     rows, cols = stdscr.getmaxyx()
-    stdscr.addstr(rows-1, 2, "[j] down | [k] up | [enter] enable/disable config")
+    stdscr.addstr(rows-1, 2, "[j] down | [k] up | [enter] enable/disable config | [q] quit")
 
 def process_input(c):
-    global current_index
+    global current_index, got_exit_code
     if c == ord('q'):
-        return True
+        got_exit_code = True
     if c == ord('k'):
         current_index -= 1
     if c == ord('j'):
@@ -210,11 +218,9 @@ def toggle_config():
         deactivate_dot_data(data)
 
 def activate_dot_data(dot_data):
-    global dotdoctor_dir
+    global dotdoctor_dir, backup_path
     dot_data.set_status(True)
     home_path = os.path.join(get_env("HOME"), dot_data.relative_path)
-    backup_path = os.path.join("./.backup", dot_data.relative_path)
-    backup_path = os.path.abspath(backup_path)
     config_path = os.path.join(dotdoctor_dir, dot_data.relative_path)
     config_path = os.path.abspath(config_path)
     if os.path.exists(home_path):
@@ -222,13 +228,13 @@ def activate_dot_data(dot_data):
     os.symlink(config_path, home_path)
 
 def deactivate_dot_data(dot_data):
-    global dotdoctor_dir
+    global dotdoctor_dir, backup_path
     dot_data.set_status(False)
     home_path = os.path.join(get_env("HOME"), dot_data.relative_path)
-    backup_path = os.path.join("./.backup", dot_data.relative_path)
-    backup_path = os.path.abspath(backup_path)
+    path = os.path.join(backup_path, dot_data.relative_path)
     os.unlink(home_path)
-    shutil.move(backup_path, home_path)
+    if os.path.exists(path):
+        shutil.move(path, home_path)
 
 def clamp_current_index():
     global current_index
