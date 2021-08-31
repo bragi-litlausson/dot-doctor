@@ -1,27 +1,78 @@
 #!/usr/bin/env python3
-
-
-import os
-import sys
-import shutil
-from environ_helper import (env_exists, get_env)
-from curses_helper import (init_color_pairs, draw_error_page, draw_config_row)
-from dotdata import DotData
-
 import curses
 from curses import wrapper
 
-def get_dotdoctor_dir_path():
+import os
+from os import environ, path
+
+import sys
+import shutil
+
+def env_exists(name):
+    return name in environ
+def get_env(name):
+    return environ.get(name)
+
+def init_color_pairs():
+    # GREEN on BLACK
+    curses.init_pair(1, curses.COLOR_GREEN, curses.COLOR_BLACK)
+    # RED on BLACK
+    curses.init_pair(2, curses.COLOR_RED, curses.COLOR_BLACK)
+    # MAGENTA on BLACK
+    curses.init_pair(3, curses.COLOR_MAGENTA, curses.COLOR_BLACK)
+    # GREEN on WHITE
+    curses.init_pair(6, curses.COLOR_GREEN, curses.COLOR_WHITE)
+    # RED on WHITE
+    curses.init_pair(7, curses.COLOR_RED, curses.COLOR_WHITE)
+
+def draw_error_message(stdscr, header, message):
+    stdscr.clear()
+    stdscr.addstr(3, 3, header, curses.color_pair(2))
+    stdscr.addstr(4, 3, message, curses.color_pair(3))
+    stdscr.getch()
+    exit()
+
+def draw_config_row(stdscr, dot_data, y, is_active):
+    color_pair_modifier = 0
+    if is_active:
+        color_pair_modifier = 5
+
+    if dot_data.status:
+        stdscr.addstr(y, 2, dot_data.get_name(), curses.color_pair(1+color_pair_modifier))
+    else:
+        stdscr.addstr(y, 2, dot_data.get_name(), curses.color_pair(2+color_pair_modifier))
+
+class DotData:
+    def __init__(self, name, relative_path, is_directory):
+        self.name = name
+        self.relative_path = relative_path
+        self.status = False
+        self.is_directory = is_directory
+    def set_status(self, status):
+        self.status = status
+    def get_name(self):
+        if self.is_directory:
+            return "{}{}".format(self.name, "/")
+        else:
+            return self.name
+
+def validate_env_var():
+    verify_dotdoctor_dir_env()
+    validate_dotdoctor_dir()
+
+dotdoctor_dir = ""
+def verify_dotdoctor_dir_env():
+    global dotdoctor_dir
     if env_exists("dotdoctor_dir"):
-        global dotdoctor_dir
         dotdoctor_dir = get_env("dotdoctor_dir")
     else:
         wrapper(draw_env_missing_error)
+
 def draw_env_missing_error(stdscr):
     init_color_pairs()
     header = "ERROR"
-    message = "Environemntal variable $dotdoctor_dir is not set."
-    draw_error_page(stdscr, header, message)
+    message = "Environemntal variable $dotdoctor_dir is not set. Variable should contain absolute path to your config repository."
+    draw_error_message(stdscr, header, message)
     stdscr.getkey()
 
 def validate_dotdoctor_dir():
@@ -29,32 +80,79 @@ def validate_dotdoctor_dir():
         wrapper(draw_dir_missing_error)
     if len(os.listdir(dotdoctor_dir)) == 0:
         wrapper(draw_dir_empty_error)
+
 def draw_dir_missing_error(stdscr):
     init_color_pairs()
     header = "ERROR"
     message = "{} does not exist.".format(dotdoctor_dir)
-    draw_error_page(stdscr, header, message)
+    draw_error_message(stdscr, header, message)
     stdscr.getkey()
+
 def draw_dir_empty_error(stdscr):
     init_color_pairs()
     header = "ERROR"
     message = "{} is empty.".format(dotdoctor_dir)
-    draw_error_page(stdscr, header, message)
+    draw_error_message(stdscr, header, message)
     stdscr.getkey()
 
+home_path = get_env("HOME")
+root_path = ""
+def validate_directory_structure():
+    validate_root_directory()
+    validate_backup_directory()
+
+def validate_root_directory():
+    global root_path, home_path
+    root_path = path.join(home_path, ".dotdoctor")
+    if path.exists(root_path) == False:
+        os.mkdir(root_path)
+
+backup_path = ""
+def validate_backup_directory():
+    global backup_path, root_path
+    backup_path = os.path.join(root_path, ".backup")
+    if os.path.exists(backup_path) == False:
+        os.mkdir(backup_path)
+        cbackup_path = os.path.join(backup_path, ".config")
+        os.mkdir(cbackup_path)
+
+ignore = []
+def load_ignore_file():
+    global ignore, root_path
+    ignore_path = os.path.join(root_path, "ignore")
+    if os.path.exists(ignore_path) == False:
+        with open(ignore_path, "w+") as file:
+            file.write(".config\n")
+            file.write("README.org\n")
+            file.write("README.md\n")
+            file.write("LICENSE\n")
+            file.write(".git\n")
+    path = os.path.abspath("./ignore")
+    with open(ignore_path) as file:
+        ignore = file.readlines()
+        ignore = [line.rstrip() for line in ignore]
+
+config_list = []
 def create_config_list():
-    global config_list
-    config_list = []
+    global config_list, ignore
     files_list = os.listdir(dotdoctor_dir)
     for file in files_list:
-        if file != ".config" and file != "README.org" and "README.md":
-            config_list.append(DotData(file, file, False))
-    if '.config' in os.listdir(dotdoctor_dir):
+        if is_file_ignored(file):
+            print("Ignored: {}".format(file))
+        else:
+            config_list.append(DotData(file, file, os.path.isdir(os.path.join(dotdoctor_dir, file))))
+    if '.config' in files_list:
         path = os.path.join(dotdoctor_dir, ".config")
         files_list = os.listdir(path)
         for file in files_list:
-            config_list.append(DotData(file, os.path.join(".config", file), False))
+            if is_file_ignored(file):
+                print("Ignored: {}".format(file))
+            else:
+                config_list.append(DotData(file, os.path.join(".config", file), os.path.isdir(os.path.join(path, file))))
     config_list.sort(key=lambda x: x.name)
+def is_file_ignored(file_name):
+    global ignore
+    return file_name in ignore
 
 def update_dot_data_status():
     home_path = get_env("HOME")
@@ -63,31 +161,25 @@ def update_dot_data_status():
         if os.path.exists(dot_path) and os.path.islink(dot_path):
             dot_data.set_status(True)
 
-def set_up_backup_directory():
-    path = "./.backup"
-    path = os.path.abspath(path)
-    if os.path.exists(path) == False:
-        os.mkdir(path)
-        path = os.path.join(path, ".config")
-        os.mkdir(path)
-
-def init():
-    get_dotdoctor_dir_path()
-    validate_dotdoctor_dir()
-    set_up_backup_directory()
+def initialize():
+    validate_env_var()
+    validate_directory_structure()
+    load_ignore_file()
     create_config_list()
     update_dot_data_status()
 
 current_index = 0
+got_exit_code=False
 def config_list_loop(stdscr):
+    global current_index, got_exit_code
     curses.curs_set(False)
     init_color_pairs()
-    global current_index
     while True:
         stdscr.clear()
         draw_navigation_help(stdscr)
         draw_list_of_configs(stdscr, current_index)
-        if process_input(stdscr.getch()):
+        process_input(stdscr.getch())
+        if got_exit_code:
             break
 
 def draw_list_of_configs(stdscr, current_index):
@@ -102,12 +194,12 @@ def draw_list_of_configs(stdscr, current_index):
 
 def draw_navigation_help(stdscr):
     rows, cols = stdscr.getmaxyx()
-    stdscr.addstr(rows-1, 2, "[j] down | [k] up | [enter] enable/disable config")
+    stdscr.addstr(rows-1, 2, "[j] down | [k] up | [enter] enable/disable config | [q] quit")
 
 def process_input(c):
-    global current_index
+    global current_index, got_exit_code
     if c == ord('q'):
-        return True
+        got_exit_code = True
     if c == ord('k'):
         current_index -= 1
     if c == ord('j'):
@@ -126,11 +218,9 @@ def toggle_config():
         deactivate_dot_data(data)
 
 def activate_dot_data(dot_data):
-    global dotdoctor_dir
+    global dotdoctor_dir, backup_path
     dot_data.set_status(True)
     home_path = os.path.join(get_env("HOME"), dot_data.relative_path)
-    backup_path = os.path.join("./.backup", dot_data.relative_path)
-    backup_path = os.path.abspath(backup_path)
     config_path = os.path.join(dotdoctor_dir, dot_data.relative_path)
     config_path = os.path.abspath(config_path)
     if os.path.exists(home_path):
@@ -138,13 +228,13 @@ def activate_dot_data(dot_data):
     os.symlink(config_path, home_path)
 
 def deactivate_dot_data(dot_data):
-    global dotdoctor_dir
+    global dotdoctor_dir, backup_path
     dot_data.set_status(False)
     home_path = os.path.join(get_env("HOME"), dot_data.relative_path)
-    backup_path = os.path.join("./.backup", dot_data.relative_path)
-    backup_path = os.path.abspath(backup_path)
+    path = os.path.join(backup_path, dot_data.relative_path)
     os.unlink(home_path)
-    shutil.move(backup_path, home_path)
+    if os.path.exists(path):
+        shutil.move(path, home_path)
 
 def clamp_current_index():
     global current_index
@@ -154,5 +244,5 @@ def clamp_current_index():
         current_index = len(config_list)-1
 
 if __name__ == "__main__":
-    init()
+    initialize()
     wrapper(config_list_loop)

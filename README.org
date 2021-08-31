@@ -1,27 +1,60 @@
 #+title: Dot Doctor
 
-* Dot Doctor
-Manager for your dot files.
+Simple manager for dot files.
 
-* Table of contents :TOC_3:
-- [[#dot-doctor][Dot Doctor]]
+* Table of contents :TOC_2:
 - [[#about-the-project][About the project]]
   - [[#built-with][Built with]]
 - [[#getting-started][Getting started]]
+  - [[#cloning-the-repo][Cloning the repo]]
+  - [[#set-enviromental-variable][Set enviromental variable]]
 - [[#usage][Usage]]
+  - [[#installation-script][Installation script]]
+  - [[#adding-files-and-directories-to-ignore-file][Adding files and directories to ignore file]]
+  - [[#backups][Backups]]
 - [[#license][License]]
 - [[#contact][Contact]]
 
 * About the project
-
+This is my simple manager for dot files.
 ** Built with
-List of all major frameworks used in the project.
+*** Python3
+*Dot doctor* uses only =Python 3= standard modules.
 * Getting started
-Instruction for setting up project locally.
+** Cloning the repo
+Since *Dot Doctor* uses only standard Python modules there are no dependencies you have to install.
+
+Just clone the repository to your computer.
+*** HTTPS
+#+begin_src shell
+git clone https://github.com/bragi-litlausson/dot-doctor.git
+#+end_src
+*** SSH
+#+begin_src shell
+git clone git@github.com:bragi-litlausson/dot-doctor.git
+#+end_src
+** Set enviromental variable
+*Dot doctor* uses =$dotdoctor_dir= enviromental variable to locate directory with config files.
+Variable has to be absolute path to your config directory, for example...
+#+begin_src shell
+export dotdoctor_dir="/home/bragi/config"
+#+end_src
 * Usage
-Examples of how project can be used.
+** Installation script
+To make the app easier to use in terminal you can use =install.sh= script.
+It will create a symlink called =dotdoctor= in your =/usr/local/bin= directory.
+** Adding files and directories to ignore file
+*Dot doctor* supports ignoring files/directories via =ignore= file. If =ignore= file does not exist application will create it and populate with default list of files.
+*Dot doctor's* =ignore= file can be found in =$HOME/.dotdoctor/=.
+** Backups
+When enabling config file or directory application will check if file already exists in your =$HOME= directory.
+If that is the case file will be moved from its location to =$HOME/.dotdoctor/.backup= directory.
+
+Backed up file and directories will be moved from =.backup= directory to their original location when disabling config.
 * License
-Distributed under the 0BSD for more information go to =LICENSE=.
+Distributed under the =0BSD= for more information go to =LICENSE=.
+
+[[https://www.youtube.com/watch?v=5qacGULztuQ][TL;DR]]
 * Contact
 bragi.litlausson at proton mail
-Project link https:github.com/bragi.litlausson/dot-doctor
+Project link https:github.com/bragi-litlausson/dot-doctor
